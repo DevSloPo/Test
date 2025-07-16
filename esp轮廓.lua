@@ -4,10 +4,8 @@ local updaters = {}
 local all_settings = {}
 local renderStepped = game:GetService("RunService").RenderStepped
 local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local rootPart = char:WaitForChild("HumanoidRootPart")
 
--- ESP 统一文件夹
+-- ESP 显示文件夹
 local ESPFolder = workspace:FindFirstChild("ESP_Objects")
 if not ESPFolder then
     ESPFolder = Instance.new("Folder")
@@ -15,9 +13,16 @@ if not ESPFolder then
     ESPFolder.Parent = workspace
 end
 
+-- 获取当前角色的 HumanoidRootPart（重生也能适配）
+local function getRootPart()
+    local character = player.Character
+    return character and character:FindFirstChild("HumanoidRootPart")
+end
+
+-- 设置 ESP 配置
 function DripESP.SetOptions(ESP_ID, opts)
     all_settings[ESP_ID] = {
-        TargetName = opts.TargetName or opts.ModelName or "Model", 
+        TargetName = opts.TargetName or "Model",
         CustomText = opts.CustomText or "Target",
         TextColor = opts.TextColor or Color3.fromRGB(255, 255, 255),
         FillTransparency = opts.FillTransparency or 0.5,
@@ -30,11 +35,12 @@ function DripESP.SetOptions(ESP_ID, opts)
     }
 end
 
+-- 应用 ESP 到指定目标
 local function applyESP(target, ESP_ID, settings)
-    local isValidType = (settings.TargetType == "Both") or
-                        (settings.TargetType == "Model" and target:IsA("Model")) or
-                        (settings.TargetType == "Part" and target:IsA("BasePart"))
-    if not isValidType then return end
+    local isValid = (settings.TargetType == "Both") or
+        (settings.TargetType == "Model" and target:IsA("Model")) or
+        (settings.TargetType == "Part" and target:IsA("BasePart"))
+    if not isValid then return end
     if target.Name ~= settings.TargetName then return end
     if target:IsA("Model") and settings.CheckForHumanoid and not target:FindFirstChild("Humanoid") then return end
 
@@ -49,7 +55,7 @@ local function applyESP(target, ESP_ID, settings)
     end
     if not targetPart then return end
 
-    -- BillboardGui
+    -- Billboard 显示标签
     local bbName = settings.BillboardName .. "_" .. target:GetDebugId()
     if not ESPFolder:FindFirstChild(bbName) then
         local billboard = Instance.new("BillboardGui")
@@ -63,7 +69,7 @@ local function applyESP(target, ESP_ID, settings)
         local label = Instance.new("TextLabel")
         label.Name = "ESP_Text"
         label.Parent = billboard
-        label.Size = UDim2.new(1, 0, 1, 0)
+        label.Size = UDim2.new(1, 0, 2, 0) -- 增加高度支持两行
         label.BackgroundTransparency = 1
         label.TextColor3 = settings.TextColor
         label.TextStrokeColor3 = Color3.new(0, 0, 0)
@@ -74,15 +80,19 @@ local function applyESP(target, ESP_ID, settings)
         label.TextYAlignment = Enum.TextYAlignment.Center
         label.Text = settings.CustomText .. "\n[0]"
 
-        -- 实时更新距离文本
+        -- 实时更新距离（防止引用失效，动态获取 rootPart）
         updaters[bbName] = renderStepped:Connect(function()
-            if not billboard or not billboard.Parent or not label or not targetPart or not rootPart then return end
-            local distance = (rootPart.Position - targetPart.Position).Magnitude
-            label.Text = settings.CustomText .. "\n[" .. math.floor(distance) .. "]"
+            pcall(function()
+                local root = getRootPart()
+                local dist = root and targetPart and (root.Position - targetPart.Position).Magnitude
+                if dist and label and label.Parent then
+                    label.Text = settings.CustomText .. "\n[" .. math.floor(dist) .. "]"
+                end
+            end)
         end)
     end
 
-    -- Highlight
+    -- Highlight 高亮
     local hlName = settings.HighlightName .. "_" .. target:GetDebugId()
     if not ESPFolder:FindFirstChild(hlName) then
         local highlight = Instance.new("Highlight")
@@ -96,6 +106,7 @@ local function applyESP(target, ESP_ID, settings)
     end
 end
 
+-- 启用 ESP
 function DripESP.Enable(ESP_ID)
     local settings = all_settings[ESP_ID]
     if not settings then return end
@@ -114,6 +125,7 @@ function DripESP.Enable(ESP_ID)
     end)
 end
 
+-- 禁用 ESP
 function DripESP.Disable(ESP_ID)
     local settings = all_settings[ESP_ID]
     if not settings then return end
