@@ -79,7 +79,7 @@ local function applyESP(target, ESP_ID, settings)
         -- 固定文本描边粗细为1
         local stroke = Instance.new("UIStroke")
         stroke.Color = settings.OutlineColor
-        stroke.Thickness = 1 -- 固定轮廓大小
+        stroke.Thickness = 0.48 -- 固定轮廓大小
         stroke.Transparency = settings.OutlineTransparency
         stroke.Parent = label
 
