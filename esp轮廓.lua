@@ -49,18 +49,21 @@ local function applyESP(target, ESP_ID, settings)
     end
     if not targetPart then return end
 
-    -- BillboardGui
     local bbName = settings.BillboardName .. "_" .. target:GetDebugId()
-    if not ESPFolder:FindFirstChild(bbName) then
-        local billboard = Instance.new("BillboardGui")
+    local billboard = ESPFolder:FindFirstChild(bbName)
+    if not billboard then
+        billboard = Instance.new("BillboardGui")
         billboard.Name = bbName
         billboard.Parent = ESPFolder
         billboard.Adornee = targetPart
         billboard.Size = UDim2.new(0, 100, 0, 40)
         billboard.StudsOffset = Vector3.new(0, 0, 0)
         billboard.AlwaysOnTop = true
+    end
 
-        local label = Instance.new("TextLabel")
+    local label = billboard:FindFirstChild("ESP_Text")
+    if not label then
+        label = Instance.new("TextLabel")
         label.Name = "ESP_Text"
         label.Parent = billboard
         label.Size = UDim2.new(1, 0, 1, 0)
@@ -72,29 +75,28 @@ local function applyESP(target, ESP_ID, settings)
         label.Font = Enum.Font.SourceSans
         label.TextWrapped = true
         label.TextYAlignment = Enum.TextYAlignment.Center
-        label.Text = settings.CustomText
 
         local stroke = Instance.new("UIStroke")
-        stroke.Thickness = 3
+        stroke.Thickness = 2
         stroke.Color = settings.OutlineColor
         stroke.Transparency = settings.OutlineTransparency
         stroke.Parent = label
-
-        local function updateDistance()
-            if label and label.Parent and targetPart and rootPart and rootPart.Parent then
-                local distance = (rootPart.Position - targetPart.Position).Magnitude
-                label.Text = string.format("%s\n[%.1f]", settings.CustomText, distance)
-            end
-        end
-
-        updateDistance()
-
-        local runService = game:GetService("RunService")
-        local conn = runService.RenderStepped:Connect(updateDistance)
-
-        if not connections[ESP_ID] then connections[ESP_ID] = {} end
-        table.insert(connections[ESP_ID], conn)
     end
+
+    local function updateDistance()
+        if label and label.Parent and targetPart and rootPart and rootPart.Parent then
+            local distance = (rootPart.Position - targetPart.Position).Magnitude
+            label.Text = string.format("%s\n[%.1f]", settings.CustomText, distance)
+        end
+    end
+
+    updateDistance()
+
+    local runService = game:GetService("RunService")
+    local conn = runService.RenderStepped:Connect(updateDistance)
+
+    if not connections[ESP_ID] then connections[ESP_ID] = {} end
+    table.insert(connections[ESP_ID], conn)
 
     -- Highlight
     local hlName = settings.HighlightName .. "_" .. target:GetDebugId()
@@ -136,12 +138,8 @@ function DripESP.Disable(ESP_ID)
     if not settings then return end
 
     if connections[ESP_ID] then
-        if typeof(connections[ESP_ID]) == "table" then
-            for _, conn in ipairs(connections[ESP_ID]) do
-                if conn and conn.Disconnect then conn:Disconnect() end
-            end
-        else
-            connections[ESP_ID]:Disconnect()
+        for _, conn in ipairs(connections[ESP_ID]) do
+            if conn and conn.Disconnect then conn:Disconnect() end
         end
         connections[ESP_ID] = nil
     end
