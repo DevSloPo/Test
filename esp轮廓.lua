@@ -63,7 +63,7 @@ local function applyESP(target, ESP_ID, settings)
         billboard.Parent = ESPFolder
         billboard.Adornee = targetPart
         billboard.Size = UDim2.new(0, 100, 0, 40)
-        billboard.StudsOffset = Vector3.new(0, 0, 0)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
         billboard.AlwaysOnTop = true
 
         local label = Instance.new("TextLabel")
